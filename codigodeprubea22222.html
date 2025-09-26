@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>BioSpaceIA</title>
+  <style>
+    /* ----- ESTILOS GENERALES ----- */
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ----- PANEL IZQUIERDO ----- */
+    .sidebar {
+      width: 25%;
+      background: #1e1e2f;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      border-right: 2px solid #111;
+      padding: 20px;
+      position: relative;
+    }
+
+    .sidebar h1 {
+      margin: 10px 0 20px 0;
+      font-size: 24px;
+      font-weight: bold;
+      text-align: center;
+    }
+
+    .sidebar select,
+    .sidebar input,
+    .sidebar button {
+      margin: 10px 0;
+      padding: 10px;
+      width: 80%;
+      border-radius: 10px;
+      border: none;
+      font-size: 16px;
+    }
+
+    .sidebar input,
+    .sidebar select {
+      background: rgba(255, 255, 255, 0.9);
+    }
+
+    .sidebar button {
+      background: #00b4d8;
+      color: #fff;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    .sidebar button:hover {
+      background: #0096c7;
+    }
+
+    .sidebar img {
+      width: 120px;
+      height: 120px;
+      margin: 20px 0;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid white;
+    }
+
+    .saved-message {
+      margin-top: 10px;
+      font-size: 14px;
+      color: #90ee90;
+      display: none;
+    }
+
+    /* ----- PANEL DERECHO (CHATBOT) ----- */
+    .chat-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      background: url("https://wallpapers.com/images/hd/blue-nebula-wallpaper-4k-hd-free-for-desktop-acyfly54avxdmy0g.webp") no-repeat center center/cover;
+      padding: 20px;
+      color: #fff;
+      position: relative;
+    }
+
+    .messages {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding-right: 6px;
+    }
+
+    .message {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      max-width: 70%;
+      padding: 10px 15px;
+      border-radius: 12px;
+      background: rgba(0, 0, 0, 0.5);
+      word-wrap: break-word;
+      line-height: 1.35;
+    }
+
+    .user {
+      align-self: flex-end;
+      background: rgba(0, 128, 255, 0.6);
+    }
+
+    .bot {
+      align-self: flex-start;
+    }
+
+    .bot img {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .bot .bubble {
+      display: inline-block;
+      vertical-align: top;
+      max-width: calc(100% - 50px);
+    }
+
+    .typing {
+      opacity: 0.9;
+      font-style: italic;
+    }
+
+    /* ----- INPUT DEL CHAT ----- */
+    .chat-input {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .chat-input input {
+      flex: 1;
+      padding: 10px;
+      border-radius: 20px;
+      border: none;
+      outline: none;
+    }
+
+    .chat-input button {
+      background: #007bff;
+      border: none;
+      border-radius: 50%;
+      width: 45px;
+      height: 45px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: 0.2s;
+    }
+    .chat-input button:hover { transform: translateY(-1px); }
+    .chat-input button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .chat-input button::before {
+      content: "➤";
+      color: white;
+      font-size: 18px;
+    }
+
+    /* ----- MODO OSCURO Y CLARO ----- */
+    .light { color: #000; }
+    .light .chat-container { background: #fdfdfd; }
+    .light .message { background: rgba(200, 200, 200, 0.7); color: #000; }
+
+    .toggle-theme {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      padding: 8px 12px;
+      background: rgba(0, 0, 0, 0.6);
+      color: #fff;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 14px;
+      user-select: none;
+    }
+
+    /* Scrollbar sutil */
+    .messages::-webkit-scrollbar { width: 8px; }
+    .messages::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.25); border-radius: 6px; }
+  </style>
+</head>
+<body>
+  <!-- PANEL IZQUIERDO -->
+  <div class="sidebar">
+    <h1>Bio Space IA</h1>
+
+    <select id="role">
+      <option value="ESTUDIANTE">ESTUDIANTE</option>
+      <option value="INSTRUCTOR">INSTRUCTOR</option>
+      <option value="TRABAJADOR">TRABAJADOR</option>
+    </select>
+
+    <input type="text" id="name" placeholder="Name" />
+    <input type="number" id="years" placeholder="Years" />
+
+    <img src="https://i.pinimg.com/736x/47/9e/9c/479e9cccb5b6103dfd516ac81cbd0388.jpg" alt="Logo" />
+
+    <button onclick="saveData()">SAVE</button>
+    <div class="saved-message" id="savedMsg">Saved successfully!</div>
+  </div>
+
+  <!-- PANEL DERECHO (CHATBOT) -->
+  <div class="chat-container" id="chat">
+    <div class="toggle-theme" onclick="toggleTheme()">🌗 Cambiar tema</div>
+
+    <div class="messages" id="messages"></div>
+
+    <div class="chat-input">
+      <input type="text" id="chatInput" placeholder="Escribe un mensaje..." autocomplete="off" />
+      <button id="sendBtn" onclick="sendMessage()"></button>
+    </div>
+  </div>
+
+  <script>
+    // === Ajusta aquí tu webhook de n8n (cuando cambie el ID/URL) ===
+    const N8N_WEBHOOK = "https://tidy-n8n.bbjn6v.easypanel.host/webhook/421f1e0e-dea5-416f-8c19-b86450844e75";
+
+    function toggleTheme() {
+      document.body.classList.toggle("light");
+    }
+
+    function saveData() {
+      const savedMsg = document.getElementById("savedMsg");
+      savedMsg.style.display = "block";
+      setTimeout(() => { savedMsg.style.display = "none"; }, 3000);
+    }
+
+    // Utilidad: crea un nodo de mensaje
+    function createMessageNode({ text, isUser = false, isTyping = false }) {
+      const wrapper = document.createElement("div");
+      wrapper.className = `message ${isUser ? "user" : "bot"}${isTyping ? " typing" : ""}`;
+
+      if (isUser) {
+        wrapper.textContent = text;
+        return wrapper;
+      }
+
+      // Bot: avatar + burbuja
+      const avatar = document.createElement("img");
+      avatar.src = "https://i.pinimg.com/736x/d5/3b/eb/d53beb0a5986ad49ebe061591f9fb6d2.jpg";
+      avatar.alt = "Bot";
+
+      const bubble = document.createElement("div");
+      bubble.className = "bubble";
+      bubble.textContent = text;
+
+      wrapper.appendChild(avatar);
+      wrapper.appendChild(bubble);
+      return wrapper;
+    }
+
+    function scrollToBottom() {
+      const messages = document.getElementById("messages");
+      messages.scrollTop = messages.scrollHeight;
+    }
+
+    // Intenta extraer el texto de la respuesta del webhook
+    async function parseWebhookResponse(resp) {
+      // 1) Si content-type es JSON, intenta parsear
+      const ct = resp.headers.get("content-type") || "";
+      if (ct.includes("application/json")) {
+        const data = await resp.json();
+        return extractReply(data);
+      }
+      // 2) Si no es JSON, toma texto plano
+      const text = await resp.text();
+      return text?.trim() || "Respuesta vacía.";
+    }
+
+    // Ajusta esta función si tu n8n devuelve otra estructura
+    function extractReply(payload) {
+      // Casos típicos: { reply: "..." } | { data: "..." } | { message: "..." }
+      if (typeof payload === "string") return payload;
+      if (!payload || typeof payload !== "object") return "Respuesta inválida.";
+      return payload.reply ?? payload.data ?? payload.message ?? JSON.stringify(payload);
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById("chatInput");
+      const sendBtn = document.getElementById("sendBtn");
+      const messages = document.getElementById("messages");
+
+      const msg = input.value.trim();
+      if (!msg) return;
+
+      // Datos de contexto (sidebar)
+      const role = document.getElementById("role").value;
+      const name = document.getElementById("name").value.trim();
+      const years = document.getElementById("years").value;
+
+      // Pintar mensaje del usuario
+      const userNode = createMessageNode({ text: msg, isUser: true });
+      messages.appendChild(userNode);
+
+      // Indicador de escribiendo…
+      const typingNode = createMessageNode({ text: "Escribiendo…", isUser: false, isTyping: true });
+      messages.appendChild(typingNode);
+
+      // Limpiar input y bloquear botón
+      input.value = "";
+      input.focus();
+      sendBtn.disabled = true;
+      scrollToBottom();
+
+      try {
+        const payload = {
+          message: msg,          // <-- principal
+          role,                  // opcional
+          name,                  // opcional
+          years: years ? Number(years) : undefined, // opcional
+          // conversationId: "tu-id-opcional",     // si quieres hilo/conversación
+          // metadata: { fuente: "BioSpaceIA" },    // ejemplo opcional
+        };
+
+        const resp = await fetch(N8N_WEBHOOK, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+            // "Authorization": "Bearer TU_TOKEN_OPCIONAL" // si usas auth en n8n
+          },
+          body: JSON.stringify(payload),
+        });
+
+        let replyText;
+        if (!resp.ok) {
+          replyText = `Error ${resp.status}: no se pudo obtener respuesta del servidor.`;
+        } else {
+          replyText = await parseWebhookResponse(resp);
+        }
+
+        // Reemplazar el “Escribiendo…” por la respuesta real
+        messages.removeChild(typingNode);
+        const botNode = createMessageNode({ text: replyText || "Sin contenido." });
+        messages.appendChild(botNode);
+
+      } catch (err) {
+        // Quitar “Escribiendo…” y mostrar error
+        messages.removeChild(typingNode);
+        const botErr = createMessageNode({
+          text:
+            "No pude conectar con el webhook. " +
+            "Revisa CORS, la URL y la disponibilidad del servidor.",
+        });
+        messages.appendChild(botErr);
+        console.error(err);
+      } finally {
+        sendBtn.disabled = false;
+        scrollToBottom();
+      }
+    }
+
+    function extractReply(payload) {
+  if (typeof payload === "string") return payload;
+
+  if (Array.isArray(payload)) {
+    const first = payload[0];
+    return first.output || first.reply || first.message || JSON.stringify(first);
+  }
+
+  if (!payload || typeof payload !== "object") return "Respuesta inválida.";
+  return payload.reply ?? payload.message ?? payload.output ?? JSON.stringify(payload);
+}
+
+
+    // Enviar con ENTER
+    document.getElementById("chatInput").addEventListener("keypress", function (event) {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        sendMessage();
+      }
+    });
+  </script>
+</body>
+</html>
